@@ -1,108 +1,99 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo } from "react";
-import { useConsentStore } from "@/lib/consent-store";
-import { ServiceCard } from "@/components/consent/ServiceCard";
-import { AboutPrototype } from "@/components/consent/AboutPrototype";
-import { ShieldCheck, ShieldOff, Layers, AlertTriangle } from "lucide-react";
+import { PhoneShell } from "@/components/consent/PhoneShell";
 
 export const Route = createFileRoute("/")({
-  head: () => ({
-    meta: [
-      { title: "Мои сервисы — Consent OS" },
-      {
-        name: "description",
-        content:
-          "Список сервисов с доступом к вашим персональным данным. Управляйте согласиями в один клик.",
-      },
-      { property: "og:title", content: "Мои сервисы — Consent OS" },
-      {
-        property: "og:description",
-        content: "Список сервисов с доступом к вашим персональным данным.",
-      },
-    ],
-  }),
-  component: Dashboard,
+  component: HomePage,
 });
 
-const RISK_WEIGHT = { low: 1, medium: 2, high: 3 } as const;
-
-function Dashboard() {
-  const { services } = useConsentStore();
-
-  const stats = useMemo(() => {
-    const active = services.filter((s) => s.status === "active");
-    const revoked = services.filter((s) => s.status === "revoked");
-    const avg =
-      active.length === 0
-        ? 0
-        : active.reduce((acc, s) => acc + RISK_WEIGHT[s.risk], 0) / active.length;
-    const portfolioRisk =
-      avg >= 2.34 ? "Высокий" : avg >= 1.67 ? "Средний" : avg > 0 ? "Низкий" : "—";
-    return { total: services.length, active: active.length, revoked: revoked.length, portfolioRisk };
-  }, [services]);
-
+function HomePage() {
   return (
-    <main className="mx-auto max-w-6xl px-4 py-8 md:px-6 md:py-12">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">Мои сервисы</h1>
-        <p className="max-w-2xl text-sm text-muted-foreground md:text-base">
-          Сервисы, которым вы дали согласие на обработку персональных данных. Отзывайте доступ в
-          один клик — Consent OS уведомит оператора через защищённый webhook.
-        </p>
-      </div>
+    <div className="app-bg">
+      <div className="app-bg-orb app-bg-orb-1" />
+      <div className="app-bg-orb app-bg-orb-2" />
 
-      <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4">
-        <StatCard icon={<Layers className="h-4 w-4" />} label="Всего" value={stats.total} />
-        <StatCard
-          icon={<ShieldCheck className="h-4 w-4 text-risk-low" />}
-          label="Активных"
-          value={stats.active}
-        />
-        <StatCard
-          icon={<ShieldOff className="h-4 w-4 text-muted-foreground" />}
-          label="Отозвано"
-          value={stats.revoked}
-        />
-        <StatCard
-          icon={<AlertTriangle className="h-4 w-4 text-risk-medium" />}
-          label="Риск портфеля"
-          value={stats.portfolioRisk}
-        />
-      </div>
-
-      {services.length === 0 ? (
-        <div className="mt-10 rounded-2xl border bg-card p-10 text-center text-muted-foreground">
-          Загрузка демо-данных…
+      {/* Left panel */}
+      <aside className="app-side-panel">
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-xl">
+              🔐
+            </div>
+            <div>
+              <p className="font-bold text-xl leading-tight">Consent OS</p>
+              <p className="text-sm text-muted-foreground">Управление данными</p>
+            </div>
+          </div>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            Единая точка контроля над тем, кто и какие ваши данные использует.
+            Отзывайте доступ отдельно по каждому типу данных.
+          </p>
         </div>
-      ) : (
-        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {services.map((s) => (
-            <ServiceCard key={s.id} service={s} />
+
+        <div className="space-y-1.5">
+          <FeatureItem icon="🛡️" title="Гранулярный контроль" desc="Отзыв по каждому типу данных" />
+          <FeatureItem icon="⚡" title="Мгновенный отзыв" desc="Webhook-уведомление операторам" />
+          <FeatureItem icon="📋" title="Аудит-лог" desc="Полная история изменений" />
+          <FeatureItem icon="🔍" title="Потоки данных" desc="Визуальная карта передачи" />
+        </div>
+
+        <div className="mt-8 rounded-2xl bg-muted/50 border p-4">
+          <p className="text-xs font-semibold text-muted-foreground mb-2.5">Демо-аккаунты</p>
+          <div className="space-y-1.5 text-xs">
+            <div className="flex items-center justify-between">
+              <span className="font-semibold">Нуркен</span>
+              <span className="text-muted-foreground">nurken.kad@gmail.com</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="font-semibold">Байет</span>
+              <span className="text-muted-foreground">bayet.zh@gmail.com</span>
+            </div>
+            <p className="mt-1 text-muted-foreground/60">Пароль для обоих: 12345678</p>
+          </div>
+        </div>
+      </aside>
+
+      {/* Phone */}
+      <main className="app-main">
+        <PhoneShell />
+      </main>
+
+      {/* Right panel */}
+      <aside className="app-side-panel app-side-panel-right">
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">Категории</p>
+        <div className="space-y-1">
+          {CATEGORIES.map(({ icon, name, desc }) => (
+            <div key={name} className="flex items-center gap-3 rounded-xl p-2.5 hover:bg-muted/50 transition-colors cursor-default">
+              <span className="text-xl">{icon}</span>
+              <div>
+                <p className="text-sm font-medium">{name}</p>
+                <p className="text-xs text-muted-foreground">{desc}</p>
+              </div>
+            </div>
           ))}
         </div>
-      )}
-
-      <AboutPrototype />
-    </main>
-  );
-}
-
-function StatCard({
-  icon,
-  label,
-  value,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: number | string;
-}) {
-  return (
-    <div className="rounded-2xl border bg-card p-4 shadow-soft">
-      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-        {icon}
-        <span>{label}</span>
-      </div>
-      <p className="mt-1 text-xl font-semibold tracking-tight md:text-2xl">{value}</p>
+      </aside>
     </div>
   );
 }
+
+function FeatureItem({ icon, title, desc }: { icon: string; title: string; desc: string }) {
+  return (
+    <div className="flex items-start gap-3 rounded-xl p-2.5 hover:bg-muted/40 transition-colors">
+      <span className="text-lg mt-0.5">{icon}</span>
+      <div>
+        <p className="text-sm font-semibold">{title}</p>
+        <p className="text-xs text-muted-foreground">{desc}</p>
+      </div>
+    </div>
+  );
+}
+
+const CATEGORIES = [
+  { icon: "🏦", name: "Финансы", desc: "Банки и платежи" },
+  { icon: "🏛️", name: "Госсервисы", desc: "Госуслуги, МФЦ" },
+  { icon: "🎮", name: "Игры", desc: "Steam, консоли" },
+  { icon: "📺", name: "Медиа", desc: "Стриминг, музыка" },
+  { icon: "🎓", name: "Учёба", desc: "Coursera, Duolingo" },
+  { icon: "🛒", name: "Магазины", desc: "Маркетплейсы" },
+  { icon: "💬", name: "Соцсети", desc: "VK, мессенджеры" },
+];
