@@ -39,7 +39,7 @@ export const Route = createRootRoute({
           "Прототип национальной системы управления согласиями: контролируйте, какие сервисы видят ваши данные, и отзывайте доступ в один клик.",
       },
       { name: "author", content: "Consent OS" },
-      { property: "og:title", content: "Consent OS — управление согласиями" },
+      { property: "og:title", content: "Consent OS — управление согласиями на персональные данные" },
       {
         property: "og:description",
         content:
@@ -47,6 +47,12 @@ export const Route = createRootRoute({
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
+      { name: "twitter:title", content: "Consent OS — управление согласиями на персональные данные" },
+      { name: "description", content: "Consent Manager Hub is a web application for managing personal data consents across various services." },
+      { property: "og:description", content: "Consent Manager Hub is a web application for managing personal data consents across various services." },
+      { name: "twitter:description", content: "Consent Manager Hub is a web application for managing personal data consents across various services." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/a011b99f-081c-4d9a-bfd9-acbcf5988b56/id-preview-ab7ca664--2010eb45-5998-4196-b9a7-22ed9ada53a3.lovable.app-1776697289443.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/a011b99f-081c-4d9a-bfd9-acbcf5988b56/id-preview-ab7ca664--2010eb45-5998-4196-b9a7-22ed9ada53a3.lovable.app-1776697289443.png" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
