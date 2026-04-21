@@ -1,8 +1,26 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
+import { useMemo, useState } from "react";
+import { useConsentStore } from "@/lib/consent-store";
+import { CheckCircle2, ShieldOff, RotateCcw, Clock } from "lucide-react";
+import type { HistoryAction } from "@/lib/consent-types";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/history")({
-  beforeLoad: () => { throw redirect({ to: "/" }); },
-  component: () => null,
+  head: () => ({
+    meta: [
+      { title: "История согласий — Consent OS" },
+      {
+        name: "description",
+        content: "Хронология выдачи и отзыва согласий на обработку персональных данных.",
+      },
+      { property: "og:title", content: "История согласий — Consent OS" },
+      {
+        property: "og:description",
+        content: "Хронология всех изменений ваших согласий.",
+      },
+    ],
+  }),
+  component: HistoryPage,
 });
 
 const FILTERS: { id: "all" | HistoryAction; label: string }[] = [

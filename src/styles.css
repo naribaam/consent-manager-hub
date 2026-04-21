@@ -11,6 +11,8 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
   --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -31,6 +33,12 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-ring-offset-background: var(--background);
+  --color-risk-low: var(--risk-low);
+  --color-risk-medium: var(--risk-medium);
+  --color-risk-high: var(--risk-high);
+  --color-risk-low-bg: var(--risk-low-bg);
+  --color-risk-medium-bg: var(--risk-medium-bg);
+  --color-risk-high-bg: var(--risk-high-bg);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
@@ -44,270 +52,78 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
-  --shadow-soft: 0 1px 3px oklch(0.1 0.02 240 / 0.06), 0 4px 16px oklch(0.1 0.02 240 / 0.06);
-  --shadow-card: 0 2px 8px oklch(0.1 0.02 240 / 0.08), 0 8px 24px -4px oklch(0.1 0.02 240 / 0.1);
+  --shadow-soft: 0 1px 2px oklch(0.2 0.02 265 / 0.04), 0 4px 16px oklch(0.2 0.02 265 / 0.04);
+  --shadow-card: 0 1px 3px oklch(0.2 0.02 265 / 0.06), 0 8px 24px -8px oklch(0.2 0.02 265 / 0.08);
 }
 
 :root {
-  --radius: 0.75rem;
-
-  --background: oklch(0.972 0.004 240);
-  --foreground: oklch(0.14 0.024 240);
+  --radius: 0.875rem;
+  /* Soft off-white background */
+  --background: oklch(0.985 0.002 270);
+  --foreground: oklch(0.18 0.03 265);
 
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.14 0.024 240);
+  --card-foreground: oklch(0.18 0.03 265);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.14 0.024 240);
+  --popover-foreground: oklch(0.18 0.03 265);
 
-  /* Slate-blue — professional, non-AI-purple */
-  --primary: oklch(0.36 0.115 245);
+  /* Indigo accent */
+  --primary: oklch(0.52 0.21 277);
   --primary-foreground: oklch(0.99 0 0);
 
-  --secondary: oklch(0.96 0.006 240);
-  --secondary-foreground: oklch(0.22 0.04 240);
+  --secondary: oklch(0.97 0.005 270);
+  --secondary-foreground: oklch(0.22 0.04 265);
 
-  --muted: oklch(0.955 0.005 240);
-  --muted-foreground: oklch(0.50 0.018 240);
+  --muted: oklch(0.965 0.005 270);
+  --muted-foreground: oklch(0.5 0.02 265);
 
-  --accent: oklch(0.95 0.012 240);
-  --accent-foreground: oklch(0.32 0.09 245);
+  --accent: oklch(0.96 0.02 277);
+  --accent-foreground: oklch(0.4 0.18 277);
 
-  --destructive: oklch(0.58 0.22 27);
+  --destructive: oklch(0.6 0.22 27);
   --destructive-foreground: oklch(0.99 0 0);
 
-  --border: oklch(0.905 0.008 240);
-  --input: oklch(0.905 0.008 240);
-  --ring: oklch(0.36 0.115 245);
+  --border: oklch(0.92 0.008 265);
+  --input: oklch(0.92 0.008 265);
+  --ring: oklch(0.52 0.21 277);
 
-  --chart-1: oklch(0.52 0.15 245);
-  --chart-2: oklch(0.60 0.16 150);
-  --chart-3: oklch(0.70 0.16 75);
-  --chart-4: oklch(0.58 0.22 27);
-  --chart-5: oklch(0.55 0.14 195);
+  /* Risk semantics */
+  --risk-low: oklch(0.62 0.16 150);
+  --risk-low-bg: oklch(0.95 0.05 150);
+  --risk-medium: oklch(0.72 0.16 75);
+  --risk-medium-bg: oklch(0.96 0.06 85);
+  --risk-high: oklch(0.6 0.22 27);
+  --risk-high-bg: oklch(0.96 0.04 27);
 
-  --sidebar: oklch(0.972 0.004 240);
-  --sidebar-foreground: oklch(0.14 0.024 240);
-  --sidebar-primary: oklch(0.36 0.115 245);
+  --chart-1: oklch(0.52 0.21 277);
+  --chart-2: oklch(0.62 0.16 150);
+  --chart-3: oklch(0.72 0.16 75);
+  --chart-4: oklch(0.6 0.22 27);
+  --chart-5: oklch(0.55 0.15 200);
+
+  --sidebar: oklch(0.985 0.002 270);
+  --sidebar-foreground: oklch(0.18 0.03 265);
+  --sidebar-primary: oklch(0.52 0.21 277);
   --sidebar-primary-foreground: oklch(0.99 0 0);
-  --sidebar-accent: oklch(0.95 0.012 240);
-  --sidebar-accent-foreground: oklch(0.32 0.09 245);
-  --sidebar-border: oklch(0.905 0.008 240);
-  --sidebar-ring: oklch(0.36 0.115 245);
+  --sidebar-accent: oklch(0.96 0.02 277);
+  --sidebar-accent-foreground: oklch(0.4 0.18 277);
+  --sidebar-border: oklch(0.92 0.008 265);
+  --sidebar-ring: oklch(0.52 0.21 277);
 }
 
 @layer base {
-  *, *::before, *::after {
+  * {
     border-color: var(--color-border);
-    box-sizing: border-box;
   }
 
   html, body {
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    margin: 0;
-    padding: 0;
   }
 
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
   }
-
-  .scrollbar-none {
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-  }
-  .scrollbar-none::-webkit-scrollbar {
-    display: none;
-  }
-}
-
-/* ===========================
-   APP LAYOUT
-   =========================== */
-.app-bg {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  overflow: hidden;
-  background: var(--color-background);
-  padding: 24px 16px;
-  gap: 0;
-}
-
-.app-bg-orb {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(100px);
-  pointer-events: none;
-  z-index: 0;
-}
-
-.app-bg-orb-1 {
-  width: 600px;
-  height: 600px;
-  background: oklch(0.80 0.07 240 / 0.25);
-  top: -150px;
-  left: -150px;
-}
-
-.app-bg-orb-2 {
-  width: 500px;
-  height: 500px;
-  background: oklch(0.85 0.05 195 / 0.2);
-  bottom: -100px;
-  right: -100px;
-}
-
-.app-main {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.app-side-panel {
-  display: none;
-  width: 240px;
-  padding: 0 20px;
-  z-index: 1;
-  flex-shrink: 0;
-}
-
-@media (min-width: 960px) {
-  .app-side-panel {
-    display: block;
-  }
-}
-
-/* ===========================
-   PHONE FRAME
-   =========================== */
-.phone-frame {
-  position: relative;
-  width: 375px;
-  height: 780px;
-  border-radius: 50px;
-  background: #0c0c0e;
-  box-shadow:
-    inset 0 0 0 1px #2a2a2e,
-    0 0 0 4px #18181c,
-    0 40px 100px oklch(0.08 0.06 240 / 0.6),
-    0 12px 32px oklch(0.08 0.06 240 / 0.35);
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-/* Volume buttons */
-.phone-frame::before {
-  content: '';
-  position: absolute;
-  left: -4px;
-  top: 130px;
-  width: 4px;
-  height: 32px;
-  background: #22222a;
-  border-radius: 3px 0 0 3px;
-  box-shadow: 0 48px 0 #22222a, 0 92px 0 #22222a;
-  z-index: 30;
-}
-
-/* Power button */
-.phone-frame::after {
-  content: '';
-  position: absolute;
-  right: -4px;
-  top: 160px;
-  width: 4px;
-  height: 56px;
-  background: #22222a;
-  border-radius: 0 3px 3px 0;
-  z-index: 30;
-}
-
-.phone-status-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 14px 24px 0;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  color: var(--color-foreground);
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 10;
-  pointer-events: none;
-}
-
-.phone-island {
-  position: absolute;
-  top: 12px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 126px;
-  height: 36px;
-  background: #000;
-  border-radius: 22px;
-  z-index: 20;
-  box-shadow: inset 0 0 0 1px #1a1a1f;
-}
-
-.phone-content {
-  flex: 1;
-  background: var(--color-background);
-  border-radius: 46px;
-  overflow: hidden;
-  position: relative;
-  margin: 2px;
-  display: flex;
-  flex-direction: column;
-  padding-top: 56px;
-}
-
-.phone-nav {
-  display: flex;
-  align-items: center;
-  background: var(--color-card);
-  border-top: 1px solid var(--color-border);
-  padding: 8px 8px 20px;
-  gap: 4px;
-  position: relative;
-  z-index: 5;
-}
-
-.phone-nav-item {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 3px;
-  padding: 7px 4px 5px;
-  border-radius: 14px;
-  font-size: 10px;
-  font-weight: 500;
-  color: var(--color-muted-foreground);
-  transition: color 0.15s ease, background-color 0.15s ease;
-  cursor: pointer;
-  border: none;
-  background: none;
-  letter-spacing: 0.01em;
-}
-
-.phone-nav-item.active {
-  color: var(--color-primary);
-  background: var(--color-accent);
-}
-
-.phone-nav-item svg {
-  width: 20px;
-  height: 20px;
 }

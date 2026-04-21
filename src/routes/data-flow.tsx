@@ -1,8 +1,25 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
+import { useConsentStore } from "@/lib/consent-store";
+import { User } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import type { ConsentService, RiskLevel } from "@/lib/consent-types";
 
 export const Route = createFileRoute("/data-flow")({
-  beforeLoad: () => { throw redirect({ to: "/" }); },
-  component: () => null,
+  head: () => ({
+    meta: [
+      { title: "Потоки данных — Consent OS" },
+      {
+        name: "description",
+        content: "Визуализация того, какие сервисы получают ваши персональные данные.",
+      },
+      { property: "og:title", content: "Потоки данных — Consent OS" },
+      {
+        property: "og:description",
+        content: "Куда уходят ваши персональные данные — наглядная карта.",
+      },
+    ],
+  }),
+  component: DataFlowPage,
 });
 
 const RISK_STROKE: Record<RiskLevel, string> = {
