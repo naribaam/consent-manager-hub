@@ -96,15 +96,8 @@ function RootComponent() {
 
           {/* Центр — телефон */}
           <main className="flex justify-center">
-            <PhoneFrame>
-              {isAuthenticated ? (
-                <>
-                  <Outlet />
-                  <BottomNav />
-                </>
-              ) : (
-                <AuthScreen />
-              )}
+            <PhoneFrame bottomNav={isAuthenticated ? <BottomNav /> : undefined}>
+              {isAuthenticated ? <Outlet /> : <AuthScreen />}
             </PhoneFrame>
           </main>
 
