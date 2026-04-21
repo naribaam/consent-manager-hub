@@ -63,16 +63,42 @@ export function ServiceCard({ service }: { service: ConsentService }) {
     <>
       <article
         className={cn(
-          "overflow-hidden rounded-2xl border bg-card transition-all",
-          isRevoked && "opacity-60",
+          "relative overflow-hidden rounded-2xl border bg-card transition-all duration-300",
+          isRevoked
+            ? "border-dashed border-muted-foreground/30 bg-muted/40"
+            : "shadow-sm hover:shadow-md",
         )}
       >
+        {/* Цветная полоска-акцент слева для активных */}
+        {!isRevoked && (
+          <span
+            className="absolute inset-y-0 left-0 w-1"
+            style={{ background: `oklch(${service.accent})` }}
+            aria-hidden
+          />
+        )}
+
+        {/* Штамп "Отозвано" поверх карточки */}
+        {isRevoked && (
+          <div className="pointer-events-none absolute right-3 top-3 z-10 rotate-[8deg]">
+            <span className="inline-flex items-center gap-1 rounded border-2 border-risk-high/70 bg-background/80 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-risk-high">
+              <ShieldOff className="h-3 w-3" />
+              Отозвано
+            </span>
+          </div>
+        )}
+
         {/* Шапка карточки с цветной плашкой иконки */}
         <header className="flex items-start gap-3 p-4">
           <div
-            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-2xl shadow-sm"
+            className={cn(
+              "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-2xl shadow-sm transition-all",
+              isRevoked && "grayscale",
+            )}
             style={{
-              background: `linear-gradient(135deg, oklch(${service.accent} / 0.18), oklch(${service.accent} / 0.06))`,
+              background: isRevoked
+                ? "oklch(0.94 0.005 270)"
+                : `linear-gradient(135deg, oklch(${service.accent} / 0.18), oklch(${service.accent} / 0.06))`,
             }}
             aria-hidden
           >
@@ -81,12 +107,19 @@ export function ServiceCard({ service }: { service: ConsentService }) {
           <div className="min-w-0 flex-1">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
-                <h3 className="truncate text-[15px] font-semibold leading-tight">
+                <h3
+                  className={cn(
+                    "truncate text-[15px] font-semibold leading-tight",
+                    isRevoked && "text-muted-foreground",
+                  )}
+                >
                   {service.name}
                 </h3>
                 <p className="text-[11px] text-muted-foreground">{service.category}</p>
               </div>
-              <RiskBadge level={service.risk} explanation={service.riskExplanation} />
+              {!isRevoked && (
+                <RiskBadge level={service.risk} explanation={service.riskExplanation} />
+              )}
             </div>
             <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">
               {service.description}
@@ -169,7 +202,12 @@ export function ServiceCard({ service }: { service: ConsentService }) {
         )}
 
         {/* Футер */}
-        <footer className="flex items-center justify-between gap-2 border-t bg-card px-4 py-3">
+        <footer
+          className={cn(
+            "flex items-center justify-between gap-2 border-t px-4 py-3",
+            isRevoked ? "bg-muted/30" : "bg-card",
+          )}
+        >
           <span className="text-[11px] text-muted-foreground">
             {isRevoked && service.revokedAt
               ? `Отозван ${fmtDate(service.revokedAt)}`
@@ -179,10 +217,10 @@ export function ServiceCard({ service }: { service: ConsentService }) {
             type="button"
             onClick={() => setOpen(true)}
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors",
+              "inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-semibold shadow-sm transition-all active:scale-95",
               isRevoked
-                ? "bg-secondary text-foreground hover:bg-secondary/70"
-                : "bg-risk-high-bg text-risk-high hover:bg-risk-high/15",
+                ? "bg-gradient-to-r from-primary to-[oklch(0.55_0.24_310)] text-primary-foreground shadow-primary/30 hover:shadow-md"
+                : "bg-risk-high-bg text-risk-high hover:bg-risk-high hover:text-risk-high-bg",
             )}
           >
             {isRevoked ? (
