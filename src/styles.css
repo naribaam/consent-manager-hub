@@ -5,7 +5,8 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-sans: "Manrope", "Inter", system-ui, -apple-system, sans-serif;
+  --font-display: "Space Grotesk", "Manrope", system-ui, sans-serif;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -52,63 +53,70 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  --color-stage: var(--stage);
+  --color-stage-grid: var(--stage-grid);
   --shadow-soft: 0 1px 2px oklch(0.2 0.02 265 / 0.04), 0 4px 16px oklch(0.2 0.02 265 / 0.04);
   --shadow-card: 0 1px 3px oklch(0.2 0.02 265 / 0.06), 0 8px 24px -8px oklch(0.2 0.02 265 / 0.08);
+  --shadow-phone: 0 50px 100px -20px oklch(0.15 0.05 260 / 0.18), 0 30px 60px -30px oklch(0.15 0.05 260 / 0.22), 0 0 0 1px oklch(0.18 0.04 260 / 0.04);
 }
 
 :root {
-  --radius: 0.875rem;
-  /* Soft off-white background */
-  --background: oklch(0.985 0.002 270);
-  --foreground: oklch(0.18 0.03 265);
+  --radius: 1rem;
+
+  /* Сцена снаружи телефона — тёплый минимал, не «AIшный» */
+  --stage: oklch(0.97 0.012 80);
+  --stage-grid: oklch(0.93 0.012 80);
+
+  /* Внутри телефона — чисто-белый интерфейс */
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.16 0.025 265);
 
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.18 0.03 265);
+  --card-foreground: oklch(0.16 0.025 265);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.18 0.03 265);
+  --popover-foreground: oklch(0.16 0.025 265);
 
-  /* Indigo accent */
-  --primary: oklch(0.52 0.21 277);
+  /* Ярко-фиолетовый primary — характерный, не дефолтный */
+  --primary: oklch(0.5 0.24 285);
   --primary-foreground: oklch(0.99 0 0);
 
-  --secondary: oklch(0.97 0.005 270);
+  --secondary: oklch(0.965 0.005 270);
   --secondary-foreground: oklch(0.22 0.04 265);
 
   --muted: oklch(0.965 0.005 270);
   --muted-foreground: oklch(0.5 0.02 265);
 
-  --accent: oklch(0.96 0.02 277);
-  --accent-foreground: oklch(0.4 0.18 277);
+  --accent: oklch(0.95 0.04 285);
+  --accent-foreground: oklch(0.4 0.22 285);
 
   --destructive: oklch(0.6 0.22 27);
   --destructive-foreground: oklch(0.99 0 0);
 
-  --border: oklch(0.92 0.008 265);
-  --input: oklch(0.92 0.008 265);
-  --ring: oklch(0.52 0.21 277);
+  --border: oklch(0.93 0.008 265);
+  --input: oklch(0.93 0.008 265);
+  --ring: oklch(0.5 0.24 285);
 
-  /* Risk semantics */
   --risk-low: oklch(0.62 0.16 150);
   --risk-low-bg: oklch(0.95 0.05 150);
-  --risk-medium: oklch(0.72 0.16 75);
+  --risk-medium: oklch(0.7 0.16 75);
   --risk-medium-bg: oklch(0.96 0.06 85);
   --risk-high: oklch(0.6 0.22 27);
   --risk-high-bg: oklch(0.96 0.04 27);
 
-  --chart-1: oklch(0.52 0.21 277);
+  --chart-1: oklch(0.5 0.24 285);
   --chart-2: oklch(0.62 0.16 150);
-  --chart-3: oklch(0.72 0.16 75);
+  --chart-3: oklch(0.7 0.16 75);
   --chart-4: oklch(0.6 0.22 27);
   --chart-5: oklch(0.55 0.15 200);
 
-  --sidebar: oklch(0.985 0.002 270);
-  --sidebar-foreground: oklch(0.18 0.03 265);
-  --sidebar-primary: oklch(0.52 0.21 277);
+  --sidebar: oklch(0.99 0.002 270);
+  --sidebar-foreground: oklch(0.16 0.025 265);
+  --sidebar-primary: oklch(0.5 0.24 285);
   --sidebar-primary-foreground: oklch(0.99 0 0);
-  --sidebar-accent: oklch(0.96 0.02 277);
-  --sidebar-accent-foreground: oklch(0.4 0.18 277);
-  --sidebar-border: oklch(0.92 0.008 265);
-  --sidebar-ring: oklch(0.52 0.21 277);
+  --sidebar-accent: oklch(0.95 0.04 285);
+  --sidebar-accent-foreground: oklch(0.4 0.22 285);
+  --sidebar-border: oklch(0.93 0.008 265);
+  --sidebar-ring: oklch(0.5 0.24 285);
 }
 
 @layer base {
@@ -123,7 +131,27 @@
   }
 
   body {
-    background-color: var(--color-background);
+    background-color: var(--color-stage);
     color: var(--color-foreground);
   }
+
+  .font-display {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+  }
 }
+
+/* Сетка фона сцены (тонкая, под бумагу) */
+.stage-bg {
+  background-color: var(--color-stage);
+  background-image:
+    radial-gradient(circle at 20% 0%, oklch(0.92 0.08 285 / 0.5), transparent 45%),
+    radial-gradient(circle at 90% 100%, oklch(0.93 0.07 30 / 0.45), transparent 45%),
+    linear-gradient(to right, var(--color-stage-grid) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--color-stage-grid) 1px, transparent 1px);
+  background-size: 100% 100%, 100% 100%, 32px 32px, 32px 32px;
+}
+
+/* Скрытие скроллбара внутри экрана телефона */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }

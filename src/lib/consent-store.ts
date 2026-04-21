@@ -3,115 +3,109 @@ import type {
   ConsentService,
   HistoryAction,
   HistoryEvent,
+  User,
 } from "./consent-types";
+import { DEMO_USERS, getServicesForUser } from "./seed-data";
 
-const SERVICES_KEY = "consent-os:services";
-const HISTORY_KEY = "consent-os:history";
+const USERS_KEY = "consent-os:users";
+const SESSION_KEY = "consent-os:session";
+const dataKey = (uid: string) => `consent-os:data:${uid}`;
 
-// ---------- Demo seed ----------
-const now = new Date();
-const daysAgo = (d: number) =>
-  new Date(now.getTime() - d * 24 * 60 * 60 * 1000).toISOString();
-
-const DEMO_SERVICES: ConsentService[] = [
-  {
-    id: "sberbank",
-    name: "СберБанк",
-    icon: "🏦",
-    category: "Банк",
-    description: "Доступ к финансовым данным для скоринга и переводов",
-    dataPoints: ["Паспортные данные", "Банковские счета", "История транзакций", "Кредитная история"],
-    risk: "high",
-    riskExplanation:
-      "Полный доступ к финансовой жизни: счета, транзакции и кредитная история. Утечка может привести к мошенничеству.",
-    status: "active",
-    grantedAt: daysAgo(120),
-  },
-  {
-    id: "gosuslugi",
-    name: "Госуслуги",
-    icon: "🏛️",
-    category: "Госсервис",
-    description: "Идентификация личности и доступ к госуслугам",
-    dataPoints: ["ФИО", "СНИЛС", "Адрес регистрации", "ИНН"],
-    risk: "medium",
-    riskExplanation:
-      "Идентифицирующие данные. Необходимы для работы с госорганами, но при утечке используются для оформления документов от вашего имени.",
-    status: "active",
-    grantedAt: daysAgo(340),
-  },
-  {
-    id: "yandex-eda",
-    name: "Яндекс Еда",
-    icon: "🍔",
-    category: "Доставка",
-    description: "Доставка еды и персональные рекомендации",
-    dataPoints: ["Телефон", "Геолокация", "История заказов"],
-    risk: "low",
-    riskExplanation:
-      "Контактные и поведенческие данные. Минимальный финансовый риск, но раскрывает образ жизни и адреса.",
-    status: "active",
-    grantedAt: daysAgo(45),
-  },
-];
-
-const DEMO_HISTORY: HistoryEvent[] = DEMO_SERVICES.map((s) => ({
-  id: `seed-${s.id}`,
-  serviceId: s.id,
-  serviceName: s.name,
-  serviceIcon: s.icon,
-  action: "granted" as HistoryAction,
-  timestamp: s.grantedAt,
-  dataPoints: s.dataPoints,
-}));
-
-// ---------- Store ----------
-interface State {
+interface UserData {
   services: ConsentService[];
   history: HistoryEvent[];
 }
 
-let state: State = { services: [], history: [] };
+interface State {
+  users: User[];
+  currentUserId: string | null;
+  data: Record<string, UserData>;
+}
+
+let state: State = { users: [], currentUserId: null, data: {} };
 let initialized = false;
 const listeners = new Set<() => void>();
 
-function isBrowser() {
-  return typeof window !== "undefined";
-}
+const isBrowser = () => typeof window !== "undefined";
 
-function loadFromStorage(): State {
-  if (!isBrowser()) return { services: [], history: [] };
+// ---------- persistence ----------
+function loadUsers(): User[] {
+  if (!isBrowser()) return [];
+  const raw = localStorage.getItem(USERS_KEY);
+  if (!raw) {
+    localStorage.setItem(USERS_KEY, JSON.stringify(DEMO_USERS));
+    return DEMO_USERS;
+  }
   try {
-    const sRaw = localStorage.getItem(SERVICES_KEY);
-    const hRaw = localStorage.getItem(HISTORY_KEY);
-    const services: ConsentService[] = sRaw ? JSON.parse(sRaw) : [];
-    const history: HistoryEvent[] = hRaw ? JSON.parse(hRaw) : [];
-    if (services.length === 0) {
-      localStorage.setItem(SERVICES_KEY, JSON.stringify(DEMO_SERVICES));
-      localStorage.setItem(HISTORY_KEY, JSON.stringify(DEMO_HISTORY));
-      return { services: DEMO_SERVICES, history: DEMO_HISTORY };
+    const stored: User[] = JSON.parse(raw);
+    // дополняем недостающими демо-пользователями (на случай старого кэша)
+    const merged = [...stored];
+    for (const demo of DEMO_USERS) {
+      if (!merged.find((u) => u.email === demo.email)) merged.push(demo);
     }
-    return { services, history };
-  } catch (e) {
-    console.error("[consent-os] failed to load storage", e);
-    return { services: DEMO_SERVICES, history: DEMO_HISTORY };
+    if (merged.length !== stored.length) {
+      localStorage.setItem(USERS_KEY, JSON.stringify(merged));
+    }
+    return merged;
+  } catch {
+    return DEMO_USERS;
   }
 }
 
-function persist() {
-  if (!isBrowser()) return;
-  localStorage.setItem(SERVICES_KEY, JSON.stringify(state.services));
-  localStorage.setItem(HISTORY_KEY, JSON.stringify(state.history));
+function loadUserData(userId: string): UserData {
+  if (!isBrowser()) return { services: [], history: [] };
+  const raw = localStorage.getItem(dataKey(userId));
+  if (raw) {
+    try {
+      return JSON.parse(raw) as UserData;
+    } catch {
+      /* fallthrough */
+    }
+  }
+  // первый вход — создаём из seed
+  const services = getServicesForUser(userId);
+  const history: HistoryEvent[] = services.map((s) => ({
+    id: `seed-${userId}-${s.id}`,
+    serviceId: s.id,
+    serviceName: s.name,
+    serviceIcon: s.icon,
+    action: "granted" as HistoryAction,
+    timestamp: s.grantedAt,
+    dataPoints: s.dataPoints.map((d) => d.label),
+  }));
+  const data = { services, history };
+  localStorage.setItem(dataKey(userId), JSON.stringify(data));
+  return data;
 }
 
-function emit() {
-  for (const l of listeners) l();
+function persistUserData(userId: string) {
+  if (!isBrowser()) return;
+  const d = state.data[userId];
+  if (d) localStorage.setItem(dataKey(userId), JSON.stringify(d));
+}
+
+function persistSession() {
+  if (!isBrowser()) return;
+  if (state.currentUserId) {
+    localStorage.setItem(SESSION_KEY, state.currentUserId);
+  } else {
+    localStorage.removeItem(SESSION_KEY);
+  }
 }
 
 function ensureInit() {
   if (initialized || !isBrowser()) return;
-  state = loadFromStorage();
+  const users = loadUsers();
+  const sessionId = localStorage.getItem(SESSION_KEY);
+  const currentUserId = sessionId && users.find((u) => u.id === sessionId) ? sessionId : null;
+  const data: Record<string, UserData> = {};
+  if (currentUserId) data[currentUserId] = loadUserData(currentUserId);
+  state = { users, currentUserId, data };
   initialized = true;
+}
+
+function emit() {
+  for (const l of listeners) l();
 }
 
 function subscribe(listener: () => void) {
@@ -120,111 +114,225 @@ function subscribe(listener: () => void) {
   return () => listeners.delete(listener);
 }
 
-const EMPTY: State = { services: [], history: [] };
-function getSnapshot(): State {
+const EMPTY: State = { users: [], currentUserId: null, data: {} };
+const getSnapshot = (): State => {
   ensureInit();
   return state;
-}
-function getServerSnapshot(): State {
-  return EMPTY;
-}
+};
+const getServerSnapshot = (): State => EMPTY;
 
-// ---------- Mock webhook (simulates real API integration) ----------
-async function sendWebhook(service: ConsentService, action: HistoryAction) {
+// ---------- mock webhook ----------
+async function sendWebhook(serviceName: string, action: string, fields?: string[]) {
   const payload = {
-    service: service.id,
-    serviceName: service.name,
+    service: serviceName,
     action,
+    fields,
     timestamp: new Date().toISOString(),
   };
+  console.log(
+    `%c[WEBHOOK] → ${serviceName}: ${action}${fields ? ` [${fields.join(", ")}]` : ""}`,
+    "color:#7c3aed;font-weight:600",
+    payload,
+  );
   try {
-    // Демонстрация: реальный POST на mock-эндпоинт
     await fetch("https://httpbin.org/post", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
-    console.log(`[Consent OS] Webhook отправлен в ${service.name}`, payload);
-  } catch (e) {
-    // Не блокируем UX, если httpbin недоступен — продакшен будет иметь свой webhook bus
-    console.warn(`[Consent OS] Webhook к ${service.name} не доставлен (демо)`, e);
+  } catch {
+    // прототип не блокируем
   }
 }
 
-// ---------- Actions ----------
-export async function revokeService(id: string): Promise<ConsentService | null> {
+// ---------- auth ----------
+export function login(email: string, password: string): { ok: true } | { ok: false; error: string } {
   ensureInit();
-  const svc = state.services.find((s) => s.id === id);
-  if (!svc) return null;
-  await sendWebhook(svc, "revoked");
-  const ts = new Date().toISOString();
+  const u = state.users.find((x) => x.email.toLowerCase() === email.toLowerCase().trim());
+  if (!u) return { ok: false, error: "Пользователь с таким email не найден" };
+  if (u.password !== password) return { ok: false, error: "Неверный пароль" };
   state = {
-    services: state.services.map((s) =>
-      s.id === id ? { ...s, status: "revoked", revokedAt: ts } : s,
+    ...state,
+    currentUserId: u.id,
+    data: { ...state.data, [u.id]: loadUserData(u.id) },
+  };
+  persistSession();
+  emit();
+  return { ok: true };
+}
+
+export function register(
+  email: string,
+  password: string,
+  name: string,
+): { ok: true } | { ok: false; error: string } {
+  ensureInit();
+  const trimmed = email.toLowerCase().trim();
+  if (!trimmed.includes("@")) return { ok: false, error: "Некорректный email" };
+  if (password.length < 6) return { ok: false, error: "Пароль должен быть от 6 символов" };
+  if (state.users.find((u) => u.email.toLowerCase() === trimmed)) {
+    return { ok: false, error: "Пользователь с таким email уже существует" };
+  }
+  const newUser: User = {
+    id: `user-${Date.now()}`,
+    email: trimmed,
+    password,
+    name: name || trimmed.split("@")[0],
+  };
+  const users = [...state.users, newUser];
+  if (isBrowser()) localStorage.setItem(USERS_KEY, JSON.stringify(users));
+  state = {
+    users,
+    currentUserId: newUser.id,
+    data: { ...state.data, [newUser.id]: loadUserData(newUser.id) },
+  };
+  persistSession();
+  emit();
+  return { ok: true };
+}
+
+export function logout() {
+  ensureInit();
+  state = { ...state, currentUserId: null };
+  persistSession();
+  emit();
+}
+
+// ---------- mutations ----------
+function withCurrentData(mutator: (d: UserData, uid: string) => UserData) {
+  ensureInit();
+  const uid = state.currentUserId;
+  if (!uid) return;
+  const next = mutator(state.data[uid] ?? { services: [], history: [] }, uid);
+  state = { ...state, data: { ...state.data, [uid]: next } };
+  persistUserData(uid);
+  emit();
+}
+
+export async function revokeService(serviceId: string) {
+  const cur = state.currentUserId ? state.data[state.currentUserId] : null;
+  const svc = cur?.services.find((s) => s.id === serviceId);
+  if (!svc) return;
+  await sendWebhook(svc.name, "revoke_all");
+  const ts = new Date().toISOString();
+  withCurrentData((d) => ({
+    services: d.services.map((s) =>
+      s.id === serviceId
+        ? {
+            ...s,
+            status: "revoked",
+            revokedAt: ts,
+            dataPoints: s.dataPoints.map((p) => ({ ...p, granted: false })),
+          }
+        : s,
     ),
     history: [
       {
-        id: `evt-${ts}-${id}`,
+        id: `evt-${ts}-${serviceId}`,
         serviceId: svc.id,
         serviceName: svc.name,
         serviceIcon: svc.icon,
         action: "revoked",
         timestamp: ts,
-        dataPoints: svc.dataPoints,
+        dataPoints: svc.dataPoints.map((p) => p.label),
       },
-      ...state.history,
+      ...d.history,
     ],
-  };
-  persist();
-  emit();
-  return state.services.find((s) => s.id === id) ?? null;
+  }));
 }
 
-export async function restoreService(id: string): Promise<ConsentService | null> {
-  ensureInit();
-  const svc = state.services.find((s) => s.id === id);
-  if (!svc) return null;
-  await sendWebhook(svc, "restored");
+export async function restoreService(serviceId: string) {
+  const cur = state.currentUserId ? state.data[state.currentUserId] : null;
+  const svc = cur?.services.find((s) => s.id === serviceId);
+  if (!svc) return;
+  await sendWebhook(svc.name, "restore_all");
   const ts = new Date().toISOString();
-  state = {
-    services: state.services.map((s) =>
-      s.id === id ? { ...s, status: "active", revokedAt: undefined, grantedAt: ts } : s,
+  withCurrentData((d) => ({
+    services: d.services.map((s) =>
+      s.id === serviceId
+        ? {
+            ...s,
+            status: "active",
+            revokedAt: undefined,
+            grantedAt: ts,
+            dataPoints: s.dataPoints.map((p) => ({ ...p, granted: true })),
+          }
+        : s,
     ),
     history: [
       {
-        id: `evt-${ts}-${id}`,
+        id: `evt-${ts}-${serviceId}`,
         serviceId: svc.id,
         serviceName: svc.name,
         serviceIcon: svc.icon,
         action: "restored",
         timestamp: ts,
-        dataPoints: svc.dataPoints,
+        dataPoints: svc.dataPoints.map((p) => p.label),
       },
-      ...state.history,
+      ...d.history,
     ],
-  };
-  persist();
-  emit();
-  return state.services.find((s) => s.id === id) ?? null;
+  }));
 }
 
-export function resetDemo() {
-  if (!isBrowser()) return;
-  localStorage.removeItem(SERVICES_KEY);
-  localStorage.removeItem(HISTORY_KEY);
-  state = loadFromStorage();
+export async function toggleField(serviceId: string, fieldId: string) {
+  const cur = state.currentUserId ? state.data[state.currentUserId] : null;
+  const svc = cur?.services.find((s) => s.id === serviceId);
+  const field = svc?.dataPoints.find((p) => p.id === fieldId);
+  if (!svc || !field || svc.status === "revoked") return;
+  if (field.required && field.granted) return; // обязательное нельзя отключить
+  const willGrant = !field.granted;
+  await sendWebhook(svc.name, willGrant ? "field_restore" : "field_revoke", [field.label]);
+  const ts = new Date().toISOString();
+  withCurrentData((d) => ({
+    services: d.services.map((s) =>
+      s.id === serviceId
+        ? {
+            ...s,
+            dataPoints: s.dataPoints.map((p) =>
+              p.id === fieldId ? { ...p, granted: willGrant } : p,
+            ),
+          }
+        : s,
+    ),
+    history: [
+      {
+        id: `evt-${ts}-${serviceId}-${fieldId}`,
+        serviceId: svc.id,
+        serviceName: svc.name,
+        serviceIcon: svc.icon,
+        action: willGrant ? "field_restored" : "field_revoked",
+        timestamp: ts,
+        dataPoints: [field.label],
+      },
+      ...d.history,
+    ],
+  }));
+}
+
+export function resetCurrentUserData() {
+  ensureInit();
+  const uid = state.currentUserId;
+  if (!uid || !isBrowser()) return;
+  localStorage.removeItem(dataKey(uid));
+  state = { ...state, data: { ...state.data, [uid]: loadUserData(uid) } };
   emit();
 }
 
-// ---------- Hook ----------
-export function useConsentStore() {
+// ---------- hooks ----------
+export function useSession() {
   const snap = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
-  // Force re-init on mount in case SSR returned EMPTY
   useEffect(() => {
     if (!initialized) {
       ensureInit();
       emit();
     }
   }, []);
-  return snap;
+  const user = snap.users.find((u) => u.id === snap.currentUserId) ?? null;
+  return { user, isAuthenticated: !!user };
+}
+
+export function useUserData(): UserData {
+  const snap = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  if (!snap.currentUserId) return { services: [], history: [] };
+  return snap.data[snap.currentUserId] ?? { services: [], history: [] };
 }
