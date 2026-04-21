@@ -1,9 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo } from "react";
-import { useConsentStore } from "@/lib/consent-store";
+import { useMemo, useState } from "react";
+import { useUserData, useSession } from "@/lib/consent-store";
 import { ServiceCard } from "@/components/consent/ServiceCard";
-import { AboutPrototype } from "@/components/consent/AboutPrototype";
-import { ShieldCheck, ShieldOff, Layers, AlertTriangle } from "lucide-react";
+import { Search, ShieldCheck, AlertTriangle, X } from "lucide-react";
+import type { RiskLevel } from "@/lib/consent-types";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -14,95 +15,157 @@ export const Route = createFileRoute("/")({
         content:
           "Список сервисов с доступом к вашим персональным данным. Управляйте согласиями в один клик.",
       },
-      { property: "og:title", content: "Мои сервисы — Consent OS" },
-      {
-        property: "og:description",
-        content: "Список сервисов с доступом к вашим персональным данным.",
-      },
     ],
   }),
   component: Dashboard,
 });
 
-const RISK_WEIGHT = { low: 1, medium: 2, high: 3 } as const;
+const RISK_WEIGHT: Record<RiskLevel, number> = { low: 1, medium: 2, high: 3 };
+
+const FILTERS = [
+  { id: "all", label: "Все" },
+  { id: "active", label: "Активные" },
+  { id: "revoked", label: "Отозванные" },
+  { id: "high", label: "🔴 Риск" },
+] as const;
 
 function Dashboard() {
-  const { services } = useConsentStore();
+  const { user } = useSession();
+  const { services } = useUserData();
+  const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState<(typeof FILTERS)[number]["id"]>("all");
 
   const stats = useMemo(() => {
     const active = services.filter((s) => s.status === "active");
-    const revoked = services.filter((s) => s.status === "revoked");
     const avg =
       active.length === 0
         ? 0
         : active.reduce((acc, s) => acc + RISK_WEIGHT[s.risk], 0) / active.length;
     const portfolioRisk =
       avg >= 2.34 ? "Высокий" : avg >= 1.67 ? "Средний" : avg > 0 ? "Низкий" : "—";
-    return { total: services.length, active: active.length, revoked: revoked.length, portfolioRisk };
+    const totalFields = active.reduce((acc, s) => acc + s.dataPoints.filter((p) => p.granted).length, 0);
+    return { active: active.length, total: services.length, portfolioRisk, totalFields };
   }, [services]);
 
-  return (
-    <main className="mx-auto max-w-6xl px-4 py-8 md:px-6 md:py-12">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">Мои сервисы</h1>
-        <p className="max-w-2xl text-sm text-muted-foreground md:text-base">
-          Сервисы, которым вы дали согласие на обработку персональных данных. Отзывайте доступ в
-          один клик — Consent OS уведомит оператора через защищённый webhook.
-        </p>
-      </div>
+  const filtered = useMemo(() => {
+    let list = services;
+    if (filter === "active") list = list.filter((s) => s.status === "active");
+    if (filter === "revoked") list = list.filter((s) => s.status === "revoked");
+    if (filter === "high") list = list.filter((s) => s.risk === "high");
+    if (query.trim()) {
+      const q = query.toLowerCase().trim();
+      list = list.filter(
+        (s) =>
+          s.name.toLowerCase().includes(q) ||
+          s.category.toLowerCase().includes(q) ||
+          s.dataPoints.some((p) => p.label.toLowerCase().includes(q)),
+      );
+    }
+    return list;
+  }, [services, filter, query]);
 
-      <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4">
-        <StatCard icon={<Layers className="h-4 w-4" />} label="Всего" value={stats.total} />
-        <StatCard
-          icon={<ShieldCheck className="h-4 w-4 text-risk-low" />}
-          label="Активных"
+  return (
+    <div className="px-4 pb-6">
+      {/* Greeting */}
+      <header className="pt-3">
+        <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+          Привет, {user?.name ?? "гость"}
+        </p>
+        <h1 className="mt-1 font-display text-2xl font-bold leading-tight">
+          Ваши согласия
+        </h1>
+      </header>
+
+      {/* Стат-плитки в две колонки */}
+      <div className="mt-4 grid grid-cols-2 gap-2">
+        <StatTile
+          label="Активные"
           value={stats.active}
+          sub={`из ${stats.total}`}
+          icon={<ShieldCheck className="h-4 w-4 text-risk-low" />}
+          tint="from-emerald-50 to-transparent"
         />
-        <StatCard
-          icon={<ShieldOff className="h-4 w-4 text-muted-foreground" />}
-          label="Отозвано"
-          value={stats.revoked}
-        />
-        <StatCard
-          icon={<AlertTriangle className="h-4 w-4 text-risk-medium" />}
+        <StatTile
           label="Риск портфеля"
           value={stats.portfolioRisk}
+          sub={`${stats.totalFields} полей данных`}
+          icon={<AlertTriangle className="h-4 w-4 text-risk-medium" />}
+          tint="from-amber-50 to-transparent"
         />
       </div>
 
-      {services.length === 0 ? (
-        <div className="mt-10 rounded-2xl border bg-card p-10 text-center text-muted-foreground">
-          Загрузка демо-данных…
+      {/* Поиск */}
+      <div className="mt-4 flex items-center gap-2 rounded-2xl border bg-secondary/60 px-3.5 py-2.5">
+        <Search className="h-4 w-4 text-muted-foreground" />
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Найти сервис, категорию, данные…"
+          className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+        />
+        {query && (
+          <button onClick={() => setQuery("")} aria-label="Очистить">
+            <X className="h-4 w-4 text-muted-foreground" />
+          </button>
+        )}
+      </div>
+
+      {/* Фильтры */}
+      <div className="no-scrollbar mt-3 flex gap-1.5 overflow-x-auto">
+        {FILTERS.map((f) => (
+          <button
+            key={f.id}
+            onClick={() => setFilter(f.id)}
+            className={cn(
+              "shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+              filter === f.id
+                ? "border-primary bg-primary text-primary-foreground"
+                : "border-border bg-background text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Список */}
+      {filtered.length === 0 ? (
+        <div className="mt-8 rounded-2xl border border-dashed bg-background p-8 text-center text-sm text-muted-foreground">
+          Ничего не найдено
         </div>
       ) : (
-        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {services.map((s) => (
+        <div className="mt-4 space-y-3">
+          {filtered.map((s) => (
             <ServiceCard key={s.id} service={s} />
           ))}
         </div>
       )}
-
-      <AboutPrototype />
-    </main>
+    </div>
   );
 }
 
-function StatCard({
-  icon,
+function StatTile({
   label,
   value,
+  sub,
+  icon,
+  tint,
 }: {
-  icon: React.ReactNode;
   label: string;
   value: number | string;
+  sub: string;
+  icon: React.ReactNode;
+  tint: string;
 }) {
   return (
-    <div className="rounded-2xl border bg-card p-4 shadow-soft">
-      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+    <div className={cn("relative overflow-hidden rounded-2xl border bg-gradient-to-br p-3.5", tint)}>
+      <div className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
         {icon}
         <span>{label}</span>
       </div>
-      <p className="mt-1 text-xl font-semibold tracking-tight md:text-2xl">{value}</p>
+      <p className="mt-1 font-display text-2xl font-bold tracking-tight">{value}</p>
+      <p className="text-[11px] text-muted-foreground">{sub}</p>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { useConsentStore } from "@/lib/consent-store";
-import { CheckCircle2, ShieldOff, RotateCcw, Clock } from "lucide-react";
+import { useUserData } from "@/lib/consent-store";
+import { CheckCircle2, ShieldOff, RotateCcw, Clock, Minus, Plus } from "lucide-react";
 import type { HistoryAction } from "@/lib/consent-types";
 import { cn } from "@/lib/utils";
 
@@ -13,11 +13,6 @@ export const Route = createFileRoute("/history")({
         name: "description",
         content: "Хронология выдачи и отзыва согласий на обработку персональных данных.",
       },
-      { property: "og:title", content: "История согласий — Consent OS" },
-      {
-        property: "og:description",
-        content: "Хронология всех изменений ваших согласий.",
-      },
     ],
   }),
   component: HistoryPage,
@@ -27,7 +22,7 @@ const FILTERS: { id: "all" | HistoryAction; label: string }[] = [
   { id: "all", label: "Все" },
   { id: "granted", label: "Выдачи" },
   { id: "revoked", label: "Отзывы" },
-  { id: "restored", label: "Восстановления" },
+  { id: "field_revoked", label: "Отзыв поля" },
 ];
 
 const ACTION_META: Record<
@@ -36,21 +31,33 @@ const ACTION_META: Record<
 > = {
   granted: {
     label: "Согласие выдано",
-    icon: <CheckCircle2 className="h-4 w-4" />,
+    icon: <CheckCircle2 className="h-3.5 w-3.5" />,
     bg: "bg-risk-low-bg",
     text: "text-risk-low",
   },
   revoked: {
     label: "Доступ отозван",
-    icon: <ShieldOff className="h-4 w-4" />,
+    icon: <ShieldOff className="h-3.5 w-3.5" />,
     bg: "bg-risk-high-bg",
     text: "text-risk-high",
   },
   restored: {
     label: "Доступ восстановлен",
-    icon: <RotateCcw className="h-4 w-4" />,
+    icon: <RotateCcw className="h-3.5 w-3.5" />,
     bg: "bg-accent",
     text: "text-accent-foreground",
+  },
+  field_revoked: {
+    label: "Поле отозвано",
+    icon: <Minus className="h-3.5 w-3.5" />,
+    bg: "bg-risk-medium-bg",
+    text: "text-risk-medium",
+  },
+  field_restored: {
+    label: "Поле возобновлено",
+    icon: <Plus className="h-3.5 w-3.5" />,
+    bg: "bg-risk-low-bg",
+    text: "text-risk-low",
   },
 };
 
@@ -58,14 +65,13 @@ function fmt(iso: string) {
   return new Date(iso).toLocaleString("ru-RU", {
     day: "2-digit",
     month: "short",
-    year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
   });
 }
 
 function HistoryPage() {
-  const { history } = useConsentStore();
+  const { history } = useUserData();
   const [filter, setFilter] = useState<"all" | HistoryAction>("all");
 
   const items = useMemo(() => {
@@ -76,23 +82,29 @@ function HistoryPage() {
   }, [history, filter]);
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-8 md:px-6 md:py-12">
-      <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">История согласий</h1>
-      <p className="mt-2 text-sm text-muted-foreground md:text-base">
-        Полная хронология действий с вашими согласиями. В продакшене этот лог будет неизменяемым и
-        юридически значимым.
-      </p>
+    <div className="px-4 pb-6">
+      <header className="pt-3">
+        <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+          Журнал
+        </p>
+        <h1 className="mt-1 font-display text-2xl font-bold leading-tight">
+          История согласий
+        </h1>
+        <p className="mt-1 text-xs text-muted-foreground">
+          В продакшене — юридически значимый неизменяемый лог.
+        </p>
+      </header>
 
-      <div className="mt-6 flex flex-wrap gap-2">
+      <div className="no-scrollbar mt-4 flex gap-1.5 overflow-x-auto">
         {FILTERS.map((f) => (
           <button
             key={f.id}
             onClick={() => setFilter(f.id)}
             className={cn(
-              "rounded-full border px-3 py-1.5 text-sm font-medium transition-colors",
+              "shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
               filter === f.id
                 ? "border-primary bg-primary text-primary-foreground"
-                : "border-border bg-card text-muted-foreground hover:text-foreground",
+                : "border-border bg-background text-muted-foreground",
             )}
           >
             {f.label}
@@ -101,49 +113,45 @@ function HistoryPage() {
       </div>
 
       {items.length === 0 ? (
-        <div className="mt-10 rounded-2xl border bg-card p-10 text-center text-sm text-muted-foreground">
-          <Clock className="mx-auto mb-2 h-6 w-6 opacity-50" />
-          Пока нет событий по выбранному фильтру.
+        <div className="mt-8 rounded-2xl border border-dashed bg-background p-8 text-center text-sm text-muted-foreground">
+          <Clock className="mx-auto mb-2 h-5 w-5 opacity-50" />
+          Пока нет событий
         </div>
       ) : (
-        <ol className="mt-8 relative border-l border-border pl-6">
+        <ol className="mt-5 relative border-l border-border pl-5">
           {items.map((evt) => {
             const meta = ACTION_META[evt.action];
             return (
-              <li key={evt.id} className="relative pb-8 last:pb-0">
+              <li key={evt.id} className="relative pb-5 last:pb-0">
                 <span
                   className={cn(
-                    "absolute -left-[34px] top-0 flex h-7 w-7 items-center justify-center rounded-full ring-4 ring-background",
+                    "absolute -left-[27px] top-1 flex h-5 w-5 items-center justify-center rounded-full ring-2 ring-background",
                     meta.bg,
                     meta.text,
                   )}
                 >
                   {meta.icon}
                 </span>
-                <div className="rounded-xl border bg-card p-4 shadow-soft">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg" aria-hidden>
+                <div className="rounded-xl border bg-card p-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex min-w-0 items-center gap-1.5">
+                      <span className="text-base" aria-hidden>
                         {evt.serviceIcon}
                       </span>
-                      <p className="font-medium">{evt.serviceName}</p>
-                      <span
-                        className={cn(
-                          "rounded-full px-2 py-0.5 text-xs font-medium",
-                          meta.bg,
-                          meta.text,
-                        )}
-                      >
-                        {meta.label}
-                      </span>
+                      <p className="truncate text-sm font-semibold">{evt.serviceName}</p>
                     </div>
-                    <time className="text-xs text-muted-foreground">{fmt(evt.timestamp)}</time>
+                    <time className="shrink-0 text-[10px] text-muted-foreground">
+                      {fmt(evt.timestamp)}
+                    </time>
                   </div>
-                  <div className="mt-3 flex flex-wrap gap-1.5">
+                  <p className={cn("mt-1.5 text-[11px] font-medium", meta.text)}>
+                    {meta.label}
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-1">
                     {evt.dataPoints.map((d) => (
                       <span
                         key={d}
-                        className="rounded-md bg-secondary px-2 py-0.5 text-xs text-secondary-foreground"
+                        className="rounded bg-secondary px-1.5 py-0.5 text-[10px] text-secondary-foreground"
                       >
                         {d}
                       </span>
@@ -155,6 +163,6 @@ function HistoryPage() {
           })}
         </ol>
       )}
-    </main>
+    </div>
   );
 }
